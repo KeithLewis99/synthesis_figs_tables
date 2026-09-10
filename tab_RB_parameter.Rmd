@@ -1,0 +1,101 @@
+---
+title: "RB_tables"
+author: "Keith Lewis"
+date: "2026-07-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+param_df <-read.csv("Tables/RB_tabs/RB_param_tab.csv")
+
+library(flextable)
+library(dplyr)
+
+# 1. Select and rename columns (same selection as your kbl() call)
+ft_df <- param_df |>
+  select(param, species, year, q2.5, q25, q50, q75, q97.5) |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2)))
+
+names(ft_df) <- c("Parameters", "species", "year",
+                   "2.5%", "25%", "50%", "75%", "97.5%")
+ft_df <- ft_df |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2)))
+names(ft_df) <- c("Parameters", "species", "year",
+                   "2.5%", "25%", "50%", "75%", "97.5%")
+```
+
+## R Markdown
+
+
+```{r }
+## complie table ----
+# 2. Build the flextable
+ft <- flextable(ft_df) %>%
+  colformat_double(j = c("2.5%", "25%", "50%", "75%", "97.5%"), digits = 2) %>%
+  align(align = "center", part = "all") %>%
+  merge_v(j = c("Parameters", "species", "year")) %>%   # collapse_rows equivalent
+  add_header_row(values = c("", "Quantiles"), colwidths = c(3, 5)) %>%  # add_header_above equivalent
+  align(align = "center", part = "header") %>%
+  set_caption(caption = "Parameter CrIs") %>%
+  theme_booktabs() %>%
+  fix_border_issues() %>%
+  autofit()
+
+ft
+```
+# Density
+```{r}
+## read/prepare data ----
+ci_df <- read.csv("Tables/RB_tabs/RB_density.csv", check.names = FALSE)
+# check.names = FALSE keeps the "1990", "1991" etc. column names intact
+
+## replace (NA, NA) with (0, 0) ----
+ci_df <- ci_df |>
+  mutate(across(`2000`:`2015`, ~ ifelse(.x == "(NA, NA)", "(0, 0)", .x)))
+
+## build flextable ----
+ft2 <- flextable(ci_df) |>
+  align(align = "center", part = "all") |>
+  merge_v(j = c("species")) |>                # collapse repeated species labels
+  add_header_row(
+    values = c("", "", "Year"),
+    colwidths = c(1, 1, 4)                     # species, trt, then 5 year columns
+  ) |>
+  align(align = "center", part = "header") |>
+  set_header_labels(species = "Species", trt = "Treatment") |>
+  set_caption(caption = "Credible intervals by species, treatment, and year") |>
+  theme_booktabs() |>
+  fix_border_issues() |>
+  autofit()
+ft2
+```
+
+# Biomass
+```{r}
+## read/prepare data ----
+ci_df_bio <- read.csv("Tables/RB_tabs/RB_biomass.csv", check.names = FALSE)
+# check.names = FALSE keeps the "1990", "1991" etc. column names intact
+
+## replace (NA, NA) with (0, 0) ----
+ci_df_bio <- ci_df_bio |>
+  mutate(across(`2000`:`2015`, ~ ifelse(.x == "(NA, NA)", "(0, 0)", .x)))
+
+## build flextable ----
+ft3 <- flextable(ci_df_bio) |>
+  align(align = "center", part = "all") |>
+  merge_v(j = c("species")) |>                # collapse repeated species labels
+  add_header_row(
+    values = c("", "", "Year"),
+    colwidths = c(1, 1, 4)                     # species, trt, then 5 year columns
+  ) |>
+  align(align = "center", part = "header") |>
+  set_header_labels(species = "Species", trt = "Treatment") |>
+  set_caption(caption = "Credible intervals by species, treatment, and year") |>
+  theme_booktabs() |>
+  fix_border_issues() |>
+  autofit()
+ft3
+```
+
