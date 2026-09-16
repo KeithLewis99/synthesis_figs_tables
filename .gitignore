@@ -2,3 +2,13 @@
 .Rhistory
 .RData
 .Ruserdata
+
+Data/
+Figures/
+Tables/
+Data_geo/
+
+*.txt
+*.png
+*.xlsx
+*.docx
