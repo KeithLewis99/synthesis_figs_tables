@@ -6,6 +6,8 @@
 
 # So, there this partly to create a publication quality graphic but the majority is to create diagnostic graphs to see WTF happened ito of classifying age-classes over the duration of the study.
 
+# I inserted the publication quality graphic infront of all the diagnostic/detective work. This is 'RB data revised'
+
 # The first set historgram type figures is to create a frequency distribution of 0+ and 1+ fish by study area and year and then by study area, year, and station.  The first is to show general trends and the latter is to show station by station differences which is useful becasue sometimes, there is overlap in the study area-year distribution that is hard to tease out. Teh vlines in these graphs were based on discussions with Keith Clarke.
 # We discarded GC 2006 because 1) it did not look like we could differentiate the 0+ and 1+ and 2) only one habitat was sampled that year.
 
@@ -34,6 +36,21 @@ library(cowplot)
 
 # Source 
 source("functionsKL.R")
+
+# RB data revised ----
+df_rb_LF <- read.csv("Data/RB_data/RB_individual_LF.csv")
+str(df_rb_LF)
+unique(df_rb_LF$Sweep)
+
+df_rb_LF <- df_rb_LF |>
+  mutate(trt = ifelse(Station <=7, "trt", "con")) %>%
+  filter(Species %in% c("BT", "AS"))
+
+
+length_hist <- hist_plot_fun(df_rb_LF)
+length_hist
+ggsave("Figures/RB_figs/length_histo_LF_pub.png", length_hist, width = 8, height = 6, dpi = 300, units = "in")
+
 
 # RB data ----
 # check to see if this needs to be filtered
