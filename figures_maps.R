@@ -134,6 +134,25 @@ main_map <- ggplot(newfoundland_island) +
 main_map
 ggsave("Figures/3study_areas.png", main_map, width = 8, height = 6, dpi = 300, units = "in")
 
+main_map_no_text_no_compass <- ggplot(newfoundland_island) +
+  geom_sf(fill = "grey", color = "black") +
+  geom_point(data = study.areas, aes(long, lat)) +
+  #geom_text(data = study.areas, aes(x, y, label = name )) +
+  # geom_segment(data = study.areas,
+  #              aes(x = xend, y = yend, xend = long, yend = lat),
+  #              arrow = arrow(length = unit(0.01, "npc"))
+  # ) +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  # annotation_north_arrow(location = "tl",which_north = "true", 
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"), 
+  #                        height = unit(1, "cm")) +
+  annotation_scale() +
+  #  coord_fixed(1.3) +
+  theme_minimal()
+main_map_no_text_no_compass
+ggsave("Figures/3study_areas.png", main_map, width = 8, height = 6, dpi = 300, units = "in")
 
 
 # Combine using cowplot
@@ -333,6 +352,31 @@ gc_map
 ggsave("Figures/GC_figs/GC_map_inset.png", gc_map, width = 8, height = 6, dpi = 300, units = "in")
 
 
+## inset  ----
+
+inset_main_map <- main_map_no_text_no_compass +
+  geom_rect(aes(xmin = -56.4, xmax = -57.3, ymin = 48.0, ymax = 48.4, colour = "red"), fill = NA, linewidth = 1.25) +
+  theme_void() +
+  theme(legend.position = "none") + 
+  theme(
+    plot.background = element_rect(
+      colour = "black",
+      fill = "white",
+      linewidth = 0.8
+    ),
+    plot.margin = margin(0, 0, 0, 0)
+  )
+
+
+# Combine using cowplot
+final_map_gc <- cowplot::ggdraw() +
+  draw_plot(gc_map) +
+  draw_plot(inset_main_map, x = 0.68, y = 0.06, width = 0.3, height = 0.3) +
+  draw_plot(cc_map_50K, x = 0.15, y = 0.68, width = 0.3, height = 0.3)
+print(final_map_gc)
+ggsave("Figures/GC_figs/GC_map_inset.png", final_map_gc, width = 8, height = 6, dpi = 300, units = "in")
+
+
 # I spent a lot of time trying to figure out how to a layer from Compensation Creek but its just too small and none of the below worked.  Just hacked it with the above map and Neils figures from Seminar_SPERA2015_2016.pdf
 
 # Claude ----
@@ -514,6 +558,7 @@ rb_map <- ggplot() +
   geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
   geom_sf(data = target_rivers, color = "black", size = 0.3) +
   geom_sf(data = target_bodies, color = "black", size = 0.3) +
+  geom_sf(data = nl_hydro, color = "black", size = 0.3) +
   coord_sf(xlim = c(-58.7, -58.72), ylim = c(47.617, 47.65), expand = FALSE) +
   # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
   #           aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
@@ -542,4 +587,406 @@ rb_map
 ggsave("Figures/RB_figs/RB_map_inset.png", rb_map, width = 8, height = 6, dpi = 300, units = "in")
 
 
+# this is just to see if the hydro_obstacles are relevant
+nl_hydro <- st_read("C:/Users/lewiske/Documents/CAFE/projects/restoration/Granite/analyses/restoration_Granite/data_geo/canvec_250K_NL_Hydro", layer = "hydro_obstacle_2")
+
+
+# check if crs is the same
+st_crs(nl_hydro) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+nl_hydro <- st_transform(nl_hydro, st_crs(newfoundland_island))
+st_crs(nl_hydro) == st_crs(newfoundland_island) # 
+
+
+# intersection
+nl_hydro <- st_intersection(nl_hydro, newfoundland_island)
+
+mapview(nl_hydro)
+keep_ids <- c(3, 6, 2, 7, 1, 5, 4)
+target_rivers <- nf_watercourses_crop %>% slice(keep_ids)
+
+
+
+
+# RB_50K ----
+# 50K experiment
+#The 50K is probably too high a resolution but its nice to have.  Try Neal's layers.  
+### Do the cropping before brining the data layer in!!!
+
+# crop while reading
+rb_bbox_sf <- st_bbox(
+  c(xmin = -58.69,
+    ymin = 47.617,
+    xmax = -58.74,
+    ymax = 47.72),
+  crs = st_crs(newfoundland_island)
+)
+
+# from https://ftp.maps.canada.ca/pub/nrcan_rncan/vector/canvec/shp/Hydro/
+rb_watercourse_50K <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "watercourse_1",
+  wkt_filter = st_as_text(st_as_sfc(rb_bbox_sf))
+)
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(rb_watercourse_50K) == st_crs(large_polygons_island)
+st_crs(rb_watercourse_50K) == st_crs(newfoundland_island)
+
+# transform crs for nl_watercourse
+rb_watercourse_50K <- st_transform(rb_watercourse_50K, st_crs(newfoundland_island))
+st_crs(rb_watercourse_50K) == st_crs(newfoundland_island) # now they are T
+
+# intersection
+rb_watercourse_50K <- st_intersection(rb_watercourse_50K, newfoundland_island)
+
+# waterbodies ----
+# this is large squares in ocean - not sure what it means
+# Did 'waterbody_2_2' which seems right 
+rb_waterbody_50K <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "waterbody_2_2",
+  wkt_filter = st_as_text(st_as_sfc(rb_bbox_sf)))
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(rb_waterbody_50K) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+rb_waterbody_50K <- st_transform(rb_waterbody_50K, st_crs(newfoundland_island))
+st_crs(rb_waterbody_50K) == st_crs(newfoundland_island) #
+
+
+# intersection
+rb_waterbody_50K <- st_intersection(rb_waterbody_50K, newfoundland_island)
+
+
+# other waterbodies
+rb_waterbody_50K1 <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "waterbody_2_5",
+  wkt_filter = st_as_text(st_as_sfc(rb_bbox_sf)))
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(rb_waterbody_50K1) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+rb_waterbody_50K1 <- st_transform(rb_waterbody_50K1, st_crs(newfoundland_island))
+st_crs(rb_waterbody_50K1) == st_crs(newfoundland_island) #
+
+
+# intersection
+rb_waterbody_50K1 <- st_intersection(rb_waterbody_50K1, newfoundland_island)
+
+
+## plot ----
+rb_map_50K <- ggplot() +
+  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  geom_sf(data = rb_watercourse_50K, color = "black", size = 0.3) +
+  geom_sf(data = rb_waterbody_50K, color = "black", size = 0.3) +
+  geom_sf(data = rb_waterbody_50K1, color = "black", size = 0.3) +
+  coord_sf(xlim = c(-58.7, -58.73), ylim = c(47.617, 47.68), expand = FALSE) +
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
+  #           nudge_y = 0.02, size = 6) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.27, y = lat - 0.04, label = "Granite \n Lake"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.06, y = lat + 0.001, label = "Granite \n Canal"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
+  theme_minimal() +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  theme(axis.title = element_text(size = 18)) + # Increases both titles to 18pt
+  theme(axis.text = element_text(size = 14)) +
+  annotation_north_arrow(location = "tl",which_north = "true",
+                         pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+                         style = north_arrow_orienteering,width = unit(1, "cm"),
+                         height = unit(1, "cm")) +
+  annotation_scale() +
+  #labs(title = "Granite Canal") +
+  theme(legend.position = "none")
+
+rb_map_50K
+ggsave("Figures/RB_figs/RB_map_50K.png", rb_map, width = 8, height = 6, dpi = 300, units = "in")
+
+
+
+
+
+# GC_50K ----
+# 50K experiment
+#The 50K is probably too high a resolution but its nice to have.  Try Neal's layers.  
+### Do the cropping before brining the data layer in!!!
+
+# crop while reading
+bbox_sf <- st_bbox(
+  c(xmin = -57.3,
+    ymin = 48.1,
+    xmax = -56.35,
+    ymax = 48.4),
+  crs = st_crs(newfoundland_island)
+)
+
+# from https://ftp.maps.canada.ca/pub/nrcan_rncan/vector/canvec/shp/Hydro/
+nl_watercourse_50K <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "watercourse_1",
+  wkt_filter = st_as_text(st_as_sfc(bbox_sf))
+  )
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(nl_watercourse_50K) == st_crs(large_polygons_island)
+st_crs(nl_watercourse_50K) == st_crs(newfoundland_island)
+
+# transform crs for nl_watercourse
+nl_watercourse_50K <- st_transform(nl_watercourse_50K, st_crs(newfoundland_island))
+st_crs(nl_watercourse_50K) == st_crs(newfoundland_island) # now they are T
+
+# intersection
+nl_watercourse_50K <- st_intersection(nl_watercourse_50K, newfoundland_island)
+
+
+
+
+# waterbodies ----
+# this is large squares in ocean - not sure what it means
+# Did 'waterbody_2_2' which seems right 
+nl_waterbody_50K <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "waterbody_2_2",
+  wkt_filter = st_as_text(st_as_sfc(bbox_sf)))
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(nl_waterbody_50K) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+nl_waterbody_50K <- st_transform(nl_waterbody_50K, st_crs(newfoundland_island))
+st_crs(nl_waterbody_50K) == st_crs(newfoundland_island) #
+
+
+# intersection
+nl_waterbody_50K <- st_intersection(nl_waterbody_50K, newfoundland_island)
+
+
+
+# water_linear_flow ----
+nl_water_linearflow_1_3 <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
+  layer = "water_linear_flow_1_3",
+  wkt_filter = st_as_text(st_as_sfc(bbox_sf))
+)
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro")
+
+# check if crs is the same
+st_crs(nl_water_linearflow_1_1) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+nl_water_linearflow_1_3 <- st_transform(nl_water_linearflow_1_3, st_crs(newfoundland_island))
+st_crs(nl_water_linearflow_1_3) == st_crs(newfoundland_island) #
+
+
+# intersection
+# this step doesn't work - no data????
+nl_water_linearflow_1_3_int <- st_intersection(nl_water_linearflow_1_3, newfoundland_island)
+
+
+
+# # save and load ----
+##skip above steps
+# saveRDS(nf_watercourses_crop,
+#         "data/nf_watercourses_crop.rds")
+# 
+# saveRDS(nf_waterbody_crop,
+#         "data/nf_waterbody_crop.rds")
+# 
+# saveRDS(nl_water_linearflow_1_1_crop,
+#         "data/nl_water_linearflow_1_1_crop.rds")
+# 
+# 
+# nf_watercourses_crop <- readRDS("data/nf_watercourses_crop.rds")
+# nf_waterbody_crop <- readRDS("data/nf_waterbody_crop.rds")
+# nl_water_linearflow_1_1_crop <- readRDS("data/nl_water_linearflow_1_1_crop.rds")
+
+
+library(mapview)
+
+mapview(nf_watercourses_crop)
+mapview(nl_water_linearflow_1_1_crop)
+
+
+## fig ----
+gc_map_50K <- ggplot() +
+  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  geom_sf(data = nl_water_linearflow_1_3_int, color = "blue", size = 0.3) +
+  #geom_sf(data = nf_watercourses, color = "blue", size = 0.3) +
+  geom_sf(data = nf_waterbody, color = "gray", fill = "lightblue", size = 0.05) +
+  coord_sf(xlim = c(-56.4, -57.3), ylim = c(48.0, 48.4), expand = FALSE) +
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
+            nudge_y = 0.02, size = 6) + 
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long - 0.27, y = lat - 0.04, label = "Granite \n Lake"),
+            nudge_y = 0.02, size = 5) + 
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long - 0.06, y = lat + 0.001, label = "Granite \n Canal"),
+            nudge_y = 0.02, size = 5) + 
+  geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
+  theme_minimal() +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  theme(axis.title = element_text(size = 18)) + # Increases both titles to 18pt
+  theme(axis.text = element_text(size = 14)) +
+  annotation_north_arrow(location = "tl",which_north = "true",
+                         pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+                         style = north_arrow_orienteering,width = unit(1, "cm"),
+                         height = unit(1, "cm")) +
+  annotation_scale() +
+  #labs(title = "Granite Canal") +
+  theme(legend.position = "none")
+
+gc_map_50K
+
+
+# Compensation Creek ----
+cc <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/synthesis_figs_tables/Data_geo/comensation_creek", 
+  layer = "Compensation Creek_region"
+  )
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/synthesis_figs_tables/Data_geo/comensation_creek")
+
+# check if crs is the same
+st_crs(cc) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+cc <- st_transform(cc, st_crs(newfoundland_island))
+st_crs(cc) == st_crs(newfoundland_island) #
+
+
+
+# tailrace ----
+tr <- st_read(
+  dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/synthesis_figs_tables/Data_geo/comensation_creek", 
+  layer = "Tailrace Outline_polyline"
+)
+
+st_layers("C:/Users/lewiske/Documents/CAFE/projects/restoration/synthesis_figs_tables/Data_geo/comensation_creek")
+
+# check if crs is the same
+st_crs(tr) == st_crs(newfoundland_island)
+
+
+# transform crs for nl_watercourse
+tr <- st_transform(tr, st_crs(newfoundland_island))
+st_crs(tr) == st_crs(newfoundland_island) #
+
+
+## crp[]
+bbox1_sf <- st_bbox(
+  c(xmin = -56.82,
+    ymin = 48.185,
+    xmax = -56.77,
+    ymax = 48.21),
+  crs = st_crs(newfoundland_island)
+)
+nf_waterbody_crop <- st_crop(nf_waterbody, bbox1_sf) 
+
+# terrible map
+cc_map <- ggplot() +
+  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  #geom_sf(data = nl_water_linearflow_1_3_int, color = "blue", size = 0.3) +
+  #geom_sf(data = nf_watercourses, color = "blue", size = 0.3) +
+  geom_sf(data = cc, color = "blue", size = 0.3) +
+  geom_sf(data = nf_waterbody_crop, color = "gray", fill = "lightblue", size = 0.05) +
+  coord_sf(xlim = c(-56.77, -56.82), ylim = c(48.185, 48.21), expand = FALSE) +
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
+  #           nudge_y = 0.02, size = 6) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.27, y = lat - 0.04, label = "Granite \n Lake"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.06, y = lat + 0.001, label = "Granite \n Canal"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
+  theme_minimal() +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  theme(axis.title = element_text(size = 18)) + # Increases both titles to 18pt
+  theme(axis.text = element_text(size = 14)) +
+  # annotation_north_arrow(location = "tl",which_north = "true",
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"),
+  #                        height = unit(1, "cm")) +
+  # annotation_scale() +
+  #labs(title = "Granite Canal") +
+  theme(legend.position = "none")
+
+cc_map
+
+# What needs to be done here is that the CC map needs to be 1:50K
+# the larger map is fine but bring it in by cropping - reduce time
+
+# crop while reading
+bbox1_sf <- st_bbox(
+  c(xmin = -56.82,
+    ymin = 48.185,
+    xmax = -56.77,
+    ymax = 48.21),
+  crs = st_crs(newfoundland_island)
+)
+cc_waterbody <- st_crop(nl_waterbody_50K, bbox1_sf) 
+
+cc_map_50K <- ggplot() +
+  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  #geom_sf(data = nl_water_linearflow_1_3_int, color = "blue", size = 0.3) +
+  #geom_sf(data = nf_watercourses, color = "blue", size = 0.3) +
+  geom_sf(data = cc, color = "blue", size = 0.3) +
+  geom_sf(data = tr, color = "blue", size = 0.3) +
+  geom_sf(data = cc_waterbody, color = "gray", fill = "lightblue", size = 0.05) +
+  coord_sf(xlim = c(-56.77, -56.82), ylim = c(48.185, 48.21), expand = FALSE) +
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
+  #           nudge_y = 0.02, size = 6) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.27, y = lat - 0.04, label = "Granite \n Lake"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+  #           aes(x = long - 0.06, y = lat + 0.001, label = "Granite \n Canal"),
+  #           nudge_y = 0.02, size = 5) + 
+  # geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
+  theme_minimal() +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  theme(axis.title = element_text(size = 18)) + # Increases both titles to 18pt
+  theme(axis.text = element_text(size = 14)) +
+  # annotation_north_arrow(location = "tl",which_north = "true",
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"),
+  #                        height = unit(1, "cm")) +
+  # annotation_scale() +
+  #labs(title = "Granite Canal") +
+  theme(legend.position = "none")
+
+cc_map_50K
 # END ----
