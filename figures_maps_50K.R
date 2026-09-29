@@ -263,7 +263,7 @@ gc_watercourse_50K <- st_intersection(gc_watercourse_50K, newfoundland_island)
 
 
 
-# waterbodies ----
+## waterbodies ----
 # this is large squares in ocean - not sure what it means
 # Did 'waterbody_2_2' which seems right 
 gc_waterbody_50K <- st_read(
@@ -287,7 +287,7 @@ gc_waterbody_50K <- st_intersection(gc_waterbody_50K, newfoundland_island)
 
 
 
-# water_linear_flow ----
+## water_linear_flow ----
 gc_water_linearflow_1_3 <- st_read(
   dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/base_layers/canvec_50K_NL/canvec_50K_NL_Hydro", 
   layer = "water_linear_flow_1_3",
@@ -317,7 +317,7 @@ mapview(gc_waterbody_50K)
 mapview(nl_water_linearflow_1_1_crop)
 
 
-## fig ----
+## plot ----
 gc_map_50K <- ggplot() +
   geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
   #geom_sf(data = gc_water_linearflow_1_3, color = "blue", size = 0.3) +
@@ -349,8 +349,61 @@ gc_map_50K <- ggplot() +
 
 gc_map_50K
 
+# Compensation Creek ----
+## openstreetmap - this works quite well but need to go to OpenStreetMap to find the features of various objects
+
+library(osmdata)
+
+bb <- c(
+  xmin = -56.81,
+  ymin = 48.185,
+  xmax = -56.78,
+  ymax = 48.2
+)
+#The most reliable approach is often to inspect the feature directly on OpenStreetMap:
+  
+ # Open https://www.openstreetmap.org
+#Zoom to approximately 48.194, -56.799.
+#Right-click the feature.
+#Choose Query Features.
+
+#This will show every OSM object at that location and its tags, for example:
+# I got the key and value from this
+water <- opq(bb) |>
+  add_osm_feature(
+    key = "natural",
+    value = "water"
+  ) |>
+  osmdata_sf()
+water$osm_polygons
+water$osm_multipolygons
+
+mapview(water$osm_polygons) # this shows CC and 
+#mapview(water$osm_multipolygons) # shows whole of resovoir and Granite Canal
+
+keep_ids <- c(96:99)
+target_cc <- water$osm_polygons %>% slice(keep_ids)
+
+keep_ids <- c(1:2)
+target_lake <- water$osm_multipolygons %>% slice(keep_ids)
+
+ggplot() +
+  geom_sf(
+    data = target_cc,
+    fill = "lightblue",
+    colour = "blue"
+  ) + 
+  geom_sf(
+    data = target_lake,
+    fill = "lightgreen",
+    colour = "green"
+  ) +
+  coord_sf(xlim = c(-56.814, -56.777), ylim = c(48.187, 48.202), expand = FALSE) +
+  theme_minimal()
+
 
 # Compensation Creek ----
+## from Neal - I don't like these - poor flexibility for me and dependent on Neal.  
 cc <- st_read(
   dsn = "C:/Users/lewiske/Documents/CAFE/projects/restoration/synthesis_figs_tables/Data_geo/comensation_creek", 
   layer = "Compensation Creek_region"
@@ -475,7 +528,7 @@ cc_map_50K <- ggplot() +
 cc_map_50K
 
 
-# combine plots -----
+# combine all maps -----
 
 # 2x2 layout where:
 # - Left column is twice as wide as the right column
