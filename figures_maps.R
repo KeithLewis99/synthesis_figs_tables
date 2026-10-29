@@ -117,20 +117,25 @@ study.areas <- data.frame(name = c("Rose Blanche River",
 main_map <- ggplot(newfoundland_island) +
   geom_sf(fill = "grey", color = "black") +
   geom_point(data = study.areas, aes(long, lat)) +
-  geom_text(data = study.areas, aes(x, y, label = name )) +
+  geom_text(data = study.areas, aes(x, y, label = name), size = 4) +
   # geom_segment(data = study.areas,
   #              aes(x = xend, y = yend, xend = long, yend = lat),
   #              arrow = arrow(length = unit(0.01, "npc"))
   # ) +
   ylab("Latitude") +
   xlab("Longitude") +
-  annotation_north_arrow(location = "tl",which_north = "true", 
-                         pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
-                         style = north_arrow_orienteering,width = unit(1, "cm"), 
-                         height = unit(1, "cm")) +
+  theme_minimal() +
+  # annotation_north_arrow(location = "tl",which_north = "true", 
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"), 
+  #                        height = unit(1, "cm")) +
   annotation_scale() +
   #  coord_fixed(1.3) +
-  theme_minimal()
+  theme(
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+  ) #+
+#  theme_minimal()
 main_map
 ggsave("Figures/3study_areas.png", main_map, width = 8, height = 6, dpi = 300, units = "in")
 
@@ -158,7 +163,7 @@ ggsave("Figures/3study_areas.png", main_map, width = 8, height = 6, dpi = 300, u
 # Combine using cowplot
 final_map <- cowplot::ggdraw() +
   draw_plot(main_map) +
-  draw_plot(inset_map, x = 0.55, y = 0.65, width = 0.3, height = 0.3)
+  draw_plot(inset_map, x = 0.61, y = 0.69, width = 0.3, height = 0.3)
 print(final_map)
 ggsave("Figures/3study_areas_inset.png", final_map, width = 8, height = 6, dpi = 300, units = "in")
 
@@ -220,7 +225,7 @@ stream_diversion <- nf_watercourses_crop %>% slice(keep_ids)
 
 mapview(nf_waterbody_crop)
 # filter on values identified in mapview
-keep_ids <- c(9, 15, 17, 19, 42, 44)
+keep_ids <- c(1, 15, 17, 19, 42, 44)
 target_bodies <- nf_waterbody_crop %>% slice(keep_ids)
 
 
@@ -237,37 +242,60 @@ df_loc1 <- df_loc |>
 
 ## plot ----
 pam_map <- ggplot() +
-  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  geom_sf(
+    data = newfoundland_island,
+    fill = NA,
+    color = "black"
+  ) +
   geom_sf(data = target_rivers, color = "blue", size = 0.3) +
-  geom_sf(data = stream_diversion, color = "red", size = 0.3) +
+  geom_sf(data = stream_diversion, color = "black", size = 0.3, linetype = "dashed") +
   geom_sf(data = target_bodies, color = "black", size = 0.3) +
   coord_sf(xlim = c(-56.20, -55.95), ylim = c(48.83, 49.0), expand = FALSE) +
   geom_text(data = study.areas[study.areas$name == "Pamehac Brook", ],
             aes(x = long + 0.1, y = lat, label = name),
-            nudge_y = 0.02, size = 5) + 
+            nudge_y = 0.02, size = 6) + 
   geom_text(data = study.areas[study.areas$name == "Pamehac Brook", ],
             aes(x = long - 0.025, y = lat + 0.025, label = "Exploits \n River"),
-            nudge_y = 0.02, size = 5) + 
+            nudge_y = 0.02, size = 6) + 
   geom_text(data = study.areas[study.areas$name == "Pamehac Brook", ],
             aes(x = long - 0.029, y = lat - 0.023, label = "Stream \n diversion"),
-            nudge_y = 0.02, size = 3) + 
+            nudge_y = 0.02, size = 4) + 
   geom_text(data = study.areas[study.areas$name == "Pamehac Brook", ],
             aes(x = long + 0.03, y = lat - 0.035, label = "Diversion \n structure"),
-            nudge_y = 0.02, size = 3) + 
+            nudge_y = 0.02, size = 4) + 
   geom_segment(data = study.areas[study.areas$name == "Pamehac Brook", ],
                aes(x = xstart, y = ystart, xend = xend, yend = yend),
                arrow = arrow(length = unit(0.01, "npc"))
   ) +
   geom_point(data = df_loc1, aes(x = west, y = north), ) +
-  theme_minimal() +
   ylab("Latitude") +
   xlab("Longitude") +
-  annotation_north_arrow(location = "tl",which_north = "true", 
-                         pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
-                         style = north_arrow_orienteering,width = unit(1, "cm"), 
-                         height = unit(1, "cm")) +
+  theme_minimal() +
+  # annotation_north_arrow(location = "tl",which_north = "true", 
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"), 
+  #                        height = unit(1, "cm")) +
   annotation_scale() +
-  labs(title = "Pamehac Brook")
+#  labs(title = "Pamehac Brook") + 
+  scale_x_continuous(
+    breaks = seq(-56.2, -55.95, by = 0.04),  # every second label
+    labels = abs                             # remove W and minus sign
+  ) +
+  scale_y_continuous(
+    breaks = seq(47.85, 49, by = 0.05),   # every second label
+    labels = scales::number_format(accuracy = 0.01)
+  ) +  
+  theme(
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1,
+      vjust = 1
+    ),
+    legend.position = "none"
+  )
+
 pam_map
 ggsave("Figures/PB_figs/Pam_map.png", pam_map, width = 8, height = 6, dpi = 300, units = "in")
 
@@ -307,12 +335,12 @@ nf_waterbody_crop <- st_crop(nf_waterbody, bbox_sf)
 # this is to identify objects and clean up the map a bit
 library(mapview)
 
-mapview(nf_watercourses_crop)
+#mapview(nf_watercourses_crop)
 keep_ids <- c(760, 157, 726, 581, 417, 705)
 target_rivers <- nf_watercourses_crop %>% slice(keep_ids)
 
 
-mapview(nf_waterbody_crop)
+#mapview(nf_waterbody_crop)
 # filter on values identified in mapview
 keep_ids <- c(425, 621)
 target_bodies <- nf_waterbody_crop %>% slice(keep_ids)
@@ -321,60 +349,90 @@ target_bodies <- nf_waterbody_crop %>% slice(keep_ids)
 
 ## plot ----
 gc_map <- ggplot() +
-  geom_sf(data = newfoundland_island, fill = "gray95", color = "black") +
+  geom_sf(data = newfoundland_island, fill = NA, color = "black") +
   geom_sf(data = target_rivers, color = "black", size = 0.3) +
   geom_sf(data = target_bodies, color = "black", size = 0.3) +
-  coord_sf(xlim = c(-56.4, -57.3), ylim = c(48.0, 48.4), expand = FALSE) +
+  coord_sf(xlim = c(-57.3, -56.4), ylim = c(48.0, 48.4), expand = FALSE) +
+  theme_minimal() +
   geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
             aes(x = long + 0.2, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
             nudge_y = 0.02, size = 6) + 
   geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
-            aes(x = long - 0.27, y = lat - 0.04, label = "Granite \n Lake"),
+            aes(x = long - 0.27, y = lat - 0.03, label = "Granite \n Lake"),
             nudge_y = 0.02, size = 5) + 
   geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
-            aes(x = long - 0.06, y = lat + 0.001, label = "Granite \n Canal"),
+            aes(x = long - 0.06, y = lat + 0.01, label = "Granite \n Canal"),
             nudge_y = 0.02, size = 5) + 
   geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
-  theme_minimal() +
+  scale_x_continuous(
+    breaks = seq(-57.2, -56.4, by = 0.2),  # every second label
+    labels = abs                             # remove W and minus sign
+  ) +
+  scale_y_continuous(
+    breaks = seq(48.00, 48.35, by = 0.05),   # every second label
+    labels = scales::number_format(accuracy = 0.01)
+  ) +
   ylab("Latitude") +
   xlab("Longitude") +
   theme(axis.title = element_text(size = 18)) + # Increases both titles to 18pt
   theme(axis.text = element_text(size = 14)) +
-  annotation_north_arrow(location = "tl",which_north = "true",
-                         pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
-                         style = north_arrow_orienteering,width = unit(1, "cm"),
-                         height = unit(1, "cm")) +
+  # annotation_north_arrow(location = "tl",which_north = "true",
+  #                        pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"),
+  #                        style = north_arrow_orienteering,width = unit(1, "cm"),
+  #                        height = unit(1, "cm")) +
   annotation_scale() +
   #labs(title = "Granite Canal") +
   theme(legend.position = "none")
 
 gc_map
+ggsave("Figures/GC_figs/GC_map.png", gc_map, width = 8, height = 6, dpi = 300, units = "in")
+
+
+
+## inset ----
+gc_map_inset <- ggplot() +
+  geom_sf(data = newfoundland_island, fill = NA, color = "black") +
+  geom_sf(data = target_rivers, color = "black", size = 0.3) +
+  geom_sf(data = target_bodies, color = "black", size = 0.3) +
+  coord_sf(xlim = c(-57.3, -56.4), ylim = c(48.0, 48.4), expand = FALSE) +
+  theme_minimal() +
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long + 0.22, y = lat + 0.03, label = "Meelpaeg \n Resovoir"),
+            nudge_y = 0.02, size = 3) + 
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long - 0.27, y = lat - 0.02, label = "Granite \n Lake"),
+            nudge_y = 0.02, size = 3) + 
+  geom_text(data = study.areas[study.areas$name == "Granite Canal", ],
+            aes(x = long - 0.06, y = lat + 0.02, label = "Granite \n Canal"),
+            nudge_y = 0.02, size = 3) + 
+  geom_rect(aes(xmin = -56.77, ymin = 48.185, xmax = -56.82, ymax = 48.21, colour = "red"), fill = NA, linewidth = 1.25) +
+  scale_x_continuous(
+    breaks = seq(-57.2, -56.4, by = 0.2),  # every second label
+    labels = abs                             # remove W and minus sign
+  ) +
+  scale_y_continuous(
+    breaks = seq(48.00, 48.35, by = 0.05),   # every second label
+    labels = scales::number_format(accuracy = 0.01)
+  ) +
+  ylab("Latitude") +
+  xlab("Longitude") +
+  theme(axis.title = element_text(size = 8)) + # Increases both titles to 18pt
+  theme(axis.text = element_text(size = 6)) +
+  annotation_scale() +
+  theme(legend.position = "none")
+
+gc_map_inset
 ggsave("Figures/GC_figs/GC_map_inset.png", gc_map, width = 8, height = 6, dpi = 300, units = "in")
 
 
-## inset  ----
-
-inset_main_map <- main_map_no_text_no_compass +
-  geom_rect(aes(xmin = -56.4, xmax = -57.3, ymin = 48.0, ymax = 48.4, colour = "red"), fill = NA, linewidth = 1.25) +
-  theme_void() +
-  theme(legend.position = "none") + 
-  theme(
-    plot.background = element_rect(
-      colour = "black",
-      fill = "white",
-      linewidth = 0.8
-    ),
-    plot.margin = margin(0, 0, 0, 0)
-  )
-
-
+## combine  ----
 # Combine using cowplot
 final_map_gc <- cowplot::ggdraw() +
-  draw_plot(gc_map) +
-  draw_plot(inset_main_map, x = 0.68, y = 0.06, width = 0.3, height = 0.3) +
-  draw_plot(cc_map_50K, x = 0.15, y = 0.68, width = 0.3, height = 0.3)
+  draw_plot(cc_map) +
+  draw_plot(gc_map_inset, x = 0.58, y = 0.1, width = 0.4, height = 0.4)
 print(final_map_gc)
-ggsave("Figures/GC_figs/GC_map_inset.png", final_map_gc, width = 8, height = 6, dpi = 300, units = "in")
+ggsave("Figures/GC_figs/GC_map_w_inset.png", final_map_gc, width = 8, height = 6, dpi = 300, units = "in")
+
 
 
 # I spent a lot of time trying to figure out how to a layer from Compensation Creek but its just too small and none of the below worked.  Just hacked it with the above map and Neils figures from Seminar_SPERA2015_2016.pdf
