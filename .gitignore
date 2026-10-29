@@ -12,3 +12,5 @@ Data_geo/
 *.png
 *.xlsx
 *.docx
+*.pdf
+*.rds
